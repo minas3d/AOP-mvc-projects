@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!--
+        ###################################################################
+        THE WHOLE POINT OF THIS FILE
+        ###################################################################
+        There is no <mvc:annotation-driven/>, no @EnableWebMvc and no component
+        scan. Every strategy object DispatcherServlet uses is declared below,
+        by hand, so you can see all four seams at once.
+
+        Remember the all-or-nothing rule: declaring even ONE bean of a strategy
+        type means the defaults in DispatcherServlet.properties are never loaded
+        for that type. So every adapter we need has to be listed explicitly.
+        ###################################################################
+    -->
+
+
+    <!-- ###############################################################
+         SEAM 1 : HandlerMapping   -   "WHICH handler?"
+         ###############################################################
+         Three mappings are active at once. DispatcherServlet sorts them by
+         order and asks each in turn, taking the FIRST non-null answer.
+         Chain of responsibility, exactly like the ViewResolver list below.
+    -->
+
+    <!--
+        1a. RequestMappingHandlerMapping  (order 0)
+        Reads @Controller / @RequestMapping. Note there is no component scan:
+        it inspects every bean already in the context, so a plain <bean>
+        declaration of AnnotatedController is enough for it to be found.
+        This bean plus its adapter is most of what @EnableWebMvc gives you.
+    -->
+    <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
+        <property name="order" value="0"/>
+    </bean>
+
+    <!--
+        1b. SimpleUrlHandlerMapping  (order 1)
+        The explicit routing table. Nothing is inferred; what you write is what
+        gets matched. Note the variety of things a "handler" can be here -
+        an AbstractController, a zero-code ParameterizableViewController, an
+        HttpRequestHandler, and a type we invented ourselves.
+    -->
+    <bean class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
+        <property name="order" value="1"/>
+        <property name="mappings">
+            <props>
+                <prop key="/home">homeController</prop>
+                <prop key="/about">aboutController</prop>
+                <prop key="/raw">rawHandler</prop>
+                <prop key="/greet">greetingHandler</prop>
+                <prop key="/plain">plainController</prop>
+                <prop key="/go-home">goHomeController</prop>
+                <prop key="/diagnostics">diagnosticsController</prop>
+            </props>
+        </property>
+    </bean>
+
+    <!--
+        1c. BeanNameUrlHandlerMapping  (order 2)
+        The URL *is* the bean name. See legacyController below, declared with
+        name="/legacy". This is one of the two defaults in
+        DispatcherServlet.properties, so it is active even with zero config.
+    -->
+    <bean class="org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping">
+        <property name="order" value="2"/>
+    </bean>
+
+
+    <!-- ###############################################################
+         SEAM 2 : HandlerAdapter   -   "HOW do I call it?"
+         ###############################################################
+         DispatcherServlet asks each adapter supports(handler) in order and
+         uses the first that says yes. Four adapters, four handler shapes.
+    -->
+
+    <!-- 2a. invokes @RequestMapping methods. Where all the "magic" lives:
+             argument resolvers, return value handlers, message converters,
+             data binding, validation. Thousands of lines behind the same
+             two-method interface as 2b. -->
+    <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"/>
+
+    <!-- 2b. invokes the Controller interface. About fifteen lines of code. -->
+    <bean class="org.springframework.web.servlet.mvc.SimpleControllerHandlerAdapter"/>
+
+    <!-- 2c. invokes HttpRequestHandler, and returns null so seam 4 is skipped. -->
+    <bean class="org.springframework.web.servlet.mvc.HttpRequestHandlerAdapter"/>
+
+    <!-- 2d. OURS. Teaches DispatcherServlet a handler type that did not exist
+             when DispatcherServlet was written. Delete this bean and /greet
+             fails with: "No adapter for handler [...]". -->
+    <bean class="com.example.four.adapter.GreetingHandlerAdapter"/>
+
+
+    <!-- ###############################################################
+         SEAM 3 : the handlers themselves
+         ###############################################################
+         Six shapes. None of them carries a URL; seam 1 owns routing.
+         None of them names a file; seam 4 owns rendering.
+    -->
+
+    <!-- 3a. AbstractController - Template Method over the Controller interface -->
+    <bean id="homeController" class="com.example.four.handler.HomeController"/>
+    <bean id="plainController" class="com.example.four.handler.PlainController"/>
+    <bean id="diagnosticsController" class="com.example.four.handler.DiagnosticsController"/>
+
+    <!-- 3b. Controller interface, routed by BEAN NAME.
+             It must be name= and not id=, because an XML id cannot contain "/". -->
+    <bean name="/legacy" class="com.example.four.handler.LegacyController"/>
+
+    <!-- 3c. @Controller. Declared as a plain bean; no scanning needed. -->
+    <bean class="com.example.four.handler.AnnotatedController"/>
+
+    <!-- 3d. HttpRequestHandler - raw servlet style, no model, no view -->
+    <bean id="rawHandler" class="com.example.four.handler.RawHandler"/>
+
+    <!-- 3e. our own handler type, only callable because of adapter 2d -->
+    <bean id="greetingHandler" class="com.example.four.handler.PoliteGreetingHandler"/>
+
+    <!--
+        3f. ParameterizableViewController - a handler with ZERO Java.
+        Used twice, to show it does not care what the view name resolves to:
+          /about   -> "about"  -> falls through to a JSP
+          /go-home -> "goHome" -> matches a RedirectView bean
+    -->
+    <bean id="aboutController"
+          class="org.springframework.web.servlet.mvc.ParameterizableViewController">
+        <property name="viewName" value="about"/>
+    </bean>
+
+    <bean id="goHomeController"
+          class="org.springframework.web.servlet.mvc.ParameterizableViewController">
+        <property name="viewName" value="goHome"/>
+    </bean>
+
+
+    <!-- ###############################################################
+         SEAM 4 : ViewResolver -> View   -   "WHICH page, rendered HOW?"
+         ###############################################################
+         Two interfaces, not one:
+           ViewResolver  : name  -> View object   (lookup, writes nothing)
+           View          : model -> bytes         (rendering, knows no names)
+
+         Two resolvers, chained by order, first non-null wins.
+    -->
+
+    <!--
+        4a. BeanNameViewResolver (order 0)
+        View name == bean name. Returns null when no such bean exists, so it
+        plays nicely in a chain. This is why "plainTextView" and "goHome"
+        never reach the JSP resolver.
+    -->
+    <bean class="org.springframework.web.servlet.view.BeanNameViewResolver">
+        <property name="order" value="0"/>
+    </bean>
+
+    <!-- a View bean of our own: renders the model as plain text, no file involved -->
+    <bean name="plainTextView" class="com.example.four.view.PlainTextView"/>
+
+    <!-- a View bean Spring ships: sends a 302 -->
+    <bean name="goHome" class="org.springframework.web.servlet.view.RedirectView">
+        <property name="url" value="/home"/>
+        <property name="contextRelative" value="true"/>
+    </bean>
+
+    <!--
+        4b. InternalResourceViewResolver (order 100)
+        MUST BE LAST. It never returns null - any string concatenates into a
+        path - so anything ordered after it would be unreachable.
+        Try setting order=0 here and watch /plain and /go-home break.
+    -->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="order" value="100"/>
+        <property name="prefix" value="/WEB-INF/views/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+</beans>

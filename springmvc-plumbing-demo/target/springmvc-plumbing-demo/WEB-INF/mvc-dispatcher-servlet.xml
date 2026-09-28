@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+    <bean id="handlerAdapter"
+          class="org.springframework.web.servlet.mvc.SimpleControllerHandlerAdapter"/>
+
+
+<!--    <bean id="handlerMapping"-->
+<!--          class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">-->
+
+<!--        <property name="mappings">-->
+<!--            <props>-->
+<!--                <prop key="/hello">helloController</prop>-->
+<!--            </props>-->
+<!--        </property>-->
+<!--    </bean>-->
+
+
+    <!-- ================================================================
+         THE HANDLERS themselves.
+
+         Plain beans. They are not @Controller, they are not scanned, and
+         they carry no URL information at all — the mapping above owns
+         that. Each one extends AbstractController, whose contract is a
+         single method returning a ModelAndView.
+    -->
+    <bean id="helloController" class="com.example.plumbing.web.HelloController">
+        <constructor-arg ref="greetingService"/>
+
+    </bean>
+    <bean id="testcontroller" class="com.example.plumbing.web.TestController">
+        <constructor-arg ref="greetingService"/>
+
+    </bean>
+
+    <bean id="myHandlerMapping" class="com.example.plumbing.web.MyHandlerMapping">
+
+    </bean>
+
+    <bean id="viewResolver"
+          class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/views/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+</beans>

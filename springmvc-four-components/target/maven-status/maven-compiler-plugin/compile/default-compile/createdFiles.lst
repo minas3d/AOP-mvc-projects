@@ -1,0 +1,10 @@
+com\example\four\handler\RawHandler.class
+com\example\four\handler\PlainController.class
+com\example\four\handler\HomeController.class
+com\example\four\adapter\GreetingHandlerAdapter.class
+com\example\four\handler\DiagnosticsController.class
+com\example\four\handler\GreetingHandler.class
+com\example\four\handler\PoliteGreetingHandler.class
+com\example\four\handler\AnnotatedController.class
+com\example\four\view\PlainTextView.class
+com\example\four\handler\LegacyController.class

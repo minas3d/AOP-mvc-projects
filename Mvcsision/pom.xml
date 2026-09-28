@@ -1,0 +1,147 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.example</groupId>
+  <artifactId>session2-lab-part1</artifactId>
+  <version>1.0</version>
+  <packaging>war</packaging>
+
+  <properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spring.version>6.1.0</spring.version>
+  </properties>
+
+  <dependencies>
+    <!-- Spring MVC - pulls in spring-core, spring-context, spring-web, spring-aop -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <version>${spring.version}</version>
+    </dependency>
+
+    <!-- Servlet API: Tomcat provides the real implementation at runtime,
+         so "provided" = needed to compile, not packaged in the WAR -->
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <version>6.0.0</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- JSP API: also provided by Tomcat. Needed only so IntelliJ can
+         resolve JSP/EL symbols while you edit the .jsp files -->
+    <dependency>
+      <groupId>jakarta.servlet.jsp</groupId>
+      <artifactId>jakarta.servlet.jsp-api</artifactId>
+      <version>3.1.1</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- JSTL for the JSP views (<c:out>, <c:forEach>, ...).
+         Both are needed: the API and the implementation.
+         Taglib URIs: jakarta.tags.core / jakarta.tags.functions -->
+    <dependency>
+      <groupId>jakarta.servlet.jsp.jstl</groupId>
+      <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+      <version>3.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.web</groupId>
+      <artifactId>jakarta.servlet.jsp.jstl</artifactId>
+      <version>3.0.1</version>
+    </dependency>
+
+    <!-- Logging, so we can SEE the DispatcherServlet lifecycle in the console -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>2.0.9</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.4.14</version>
+    </dependency>
+
+    <!-- Bean Validation (JSR-380): the API + Hibernate Validator as the implementation -->
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+      <version>3.0.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate.validator</groupId>
+      <artifactId>hibernate-validator</artifactId>
+      <version>8.0.1.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>jakarta.el</artifactId>
+      <version>4.0.2</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>session2-lab-part1</finalName>
+
+    <!-- Just type `mvn` and it builds the WAR, then starts Tomcat.
+         Cargo only runs an existing WAR, so "package" must come first. -->
+    <defaultGoal>clean package cargo:run</defaultGoal>
+
+    <plugins>
+      <!-- Compile with -parameters so @PathVariable / @RequestParam names
+           and constructor data binding work without explicit names -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <parameters>true</parameters>
+        </configuration>
+      </plugin>
+
+      <!-- There is no web.xml (the app is configured in Java), so the WAR
+           plugin must not fail because of it -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>3.4.0</version>
+        <configuration>
+          <failOnMissingWebXml>false</failOnMissingWebXml>
+        </configuration>
+      </plugin>
+
+      <!-- `mvn cargo:run` downloads Tomcat 10 once, deploys the WAR and starts it.
+           Tomcat 10 is required because Spring 6 uses jakarta.servlet.* -->
+      <plugin>
+        <groupId>org.codehaus.cargo</groupId>
+        <artifactId>cargo-maven3-plugin</artifactId>
+        <version>1.10.13</version>
+        <configuration>
+          <container>
+            <containerId>tomcat10x</containerId>
+            <type>installed</type>
+            <zipUrlInstaller>
+              <url>https://archive.apache.org/dist/tomcat/tomcat-10/v10.1.18/bin/apache-tomcat-10.1.18.zip</url>
+              <!-- Outside target/ so `mvn clean` doesn't delete the Tomcat zip
+                   and force a re-download every time -->
+              <downloadDir>${user.home}/.m2/cargo-tomcat/downloads</downloadDir>
+              <extractDir>${user.home}/.m2/cargo-tomcat/extracts</extractDir>
+            </zipUrlInstaller>
+          </container>
+          <configuration>
+            <type>standalone</type>
+            <home>${project.build.directory}/tomcat10x-home</home>
+            <properties>
+              <cargo.servlet.port>8082</cargo.servlet.port>
+              <!-- moved off the defaults (8205 / 8009) that were already in use -->
+              <cargo.rmi.port>8206</cargo.rmi.port>
+              <cargo.tomcat.ajp.port>8010</cargo.tomcat.ajp.port>
+            </properties>
+          </configuration>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

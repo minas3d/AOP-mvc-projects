@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>springmvc-four-components</artifactId>
+    <version>1.0.0</version>
+    <packaging>war</packaging>
+
+    <name>Spring MVC Four Components Demo</name>
+    <description>
+        One DispatcherServlet, one XML file: three HandlerMappings, four HandlerAdapters
+        (one custom), six handler shapes, and two chained ViewResolvers - all visible at once.
+    </description>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <spring.version>6.2.19</spring.version>
+        <servlet.api.version>6.0.0</servlet.api.version>
+
+        <!-- Tomcat 10.1.x = Jakarta EE 10 = the jakarta.* namespace Spring 6 needs -->
+        <tomcat.version>10.1.60</tomcat.version>
+        <cargo.version>1.10.28</cargo.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- Pulls in spring-core, spring-beans, spring-context, spring-web, spring-aop, spring-expression -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <!--
+            provided: Tomcat supplies this at runtime.
+            If you package it into the WAR you get a ClassCastException festival.
+        -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>${servlet.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+            No JSTL on purpose. The JSPs use plain EL (${name}) and, where a loop is
+            needed, a scriptlet. One less dependency to explain.
+        -->
+
+    </dependencies>
+
+    <build>
+        <!-- decides the context path: http://localhost:8080/mvcdemo/ -->
+        <finalName>fourcomp</finalName>
+
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.4.0</version>
+            </plugin>
+
+            <!--
+                Default: Tomcat runs EMBEDDED, inside the Maven JVM.
+                Nothing to download, nothing to install:  mvn clean package cargo:run
+
+                tomcat-embed-jasper is what makes JSP compilation work; without it
+                every view renders as a blank page or a 500.
+            -->
+            <plugin>
+                <groupId>org.codehaus.cargo</groupId>
+                <artifactId>cargo-maven3-plugin</artifactId>
+                <version>${cargo.version}</version>
+                <configuration>
+                    <container>
+                        <containerId>tomcat10x</containerId>
+                        <type>embedded</type>
+                    </container>
+                    <configuration>
+                        <properties>
+                            <cargo.servlet.port>8080</cargo.servlet.port>
+                            <cargo.logging>medium</cargo.logging>
+                        </properties>
+                    </configuration>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.tomcat.embed</groupId>
+                        <artifactId>tomcat-embed-core</artifactId>
+                        <version>${tomcat.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.tomcat.embed</groupId>
+                        <artifactId>tomcat-embed-el</artifactId>
+                        <version>${tomcat.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.tomcat.embed</groupId>
+                        <artifactId>tomcat-embed-jasper</artifactId>
+                        <version>${tomcat.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--
+            Fallback / "closer to production" mode:
+
+                mvn clean package cargo:run -P installed
+
+            Cargo downloads a real Tomcat distribution once, unpacks it into
+            target/, and starts it as a separate process. Slower to start, but it is
+            a genuine Tomcat and it never has embedded-mode classpath surprises.
+        -->
+        <profile>
+            <id>installed</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.cargo</groupId>
+                        <artifactId>cargo-maven3-plugin</artifactId>
+                        <version>${cargo.version}</version>
+                        <configuration combine.self="override">
+                            <container>
+                                <containerId>tomcat10x</containerId>
+                                <type>installed</type>
+                                <zipUrlInstaller>
+                                    <url>https://repo.maven.apache.org/maven2/org/apache/tomcat/tomcat/${tomcat.version}/tomcat-${tomcat.version}.zip</url>
+                                </zipUrlInstaller>
+                            </container>
+                            <configuration>
+                                <type>standalone</type>
+                                <home>${project.build.directory}/tomcat10x</home>
+                                <properties>
+                                    <cargo.servlet.port>8080</cargo.servlet.port>
+                                    <cargo.logging>medium</cargo.logging>
+                                </properties>
+                            </configuration>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

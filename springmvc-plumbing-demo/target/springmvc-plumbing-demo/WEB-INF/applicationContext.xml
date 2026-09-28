@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!--
+        ====================================================================
+        THE ROOT APPLICATION CONTEXT
+        ====================================================================
+        Found by ContextLoaderListener purely because of this file's NAME.
+        No <context-param> in web.xml points at it.
+
+        What belongs here: the things that are not web-specific.
+        Services, DAOs, the DataSource, the transaction manager, aspects —
+        anything you would want to reuse from a scheduled job or a CLI tool
+        as happily as from a controller.
+
+        What must NOT be here: controllers, handler mappings, handler
+        adapters, view resolvers. Those are web-layer beans, and a
+        DispatcherServlet only looks for its strategies in its OWN context
+        (plus ancestors) — putting them here would work by accident and
+        confuse everybody, including the two dispatchers that would then
+        share them.
+
+        There is exactly ONE of these per application.
+        Both DispatcherServlets below inherit from it.
+    -->
+    <bean id="greetingService"
+          class="com.example.plumbing.service.GreetingService"/>
+
+</beans>

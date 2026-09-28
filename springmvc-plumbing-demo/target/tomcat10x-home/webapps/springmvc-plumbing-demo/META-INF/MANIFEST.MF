@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Created-By: Maven WAR Plugin 3.5.1
+Java-Version: 17
+Build-Jdk-Spec: 25
+

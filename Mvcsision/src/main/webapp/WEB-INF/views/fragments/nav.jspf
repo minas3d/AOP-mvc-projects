@@ -1,0 +1,7 @@
+<header class="bar">
+    <a class="brand" href="${pageContext.request.contextPath}/task/showAll">Taskboard</a>
+    <nav class="nav" aria-label="Main">
+        <a class="btn ghost" href="${pageContext.request.contextPath}/task/showAll">All tasks</a>
+        <a class="btn" href="${pageContext.request.contextPath}/task/new">Add task</a>
+    </nav>
+</header>

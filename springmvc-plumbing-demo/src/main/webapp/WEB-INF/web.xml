@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+                             https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0">
+
+    <display-name>Spring MVC Plumbing Demo</display-name>
+
+    <!-- =================================================================
+         1. THE ROOT APPLICATION CONTEXT
+         =================================================================
+         Notice there is NO <context-param> for contextConfigLocation.
+         ContextLoaderListener therefore falls back to its default:
+
+             /WEB-INF/applicationContext.xml
+
+         (ContextLoader.DEFAULT_CONFIG_LOCATION)
+
+         Delete that file and the application will NOT start silently —
+         it fails at deploy time with a FileNotFoundException.
+
+         This listener runs BEFORE any servlet is initialized, which is
+         exactly why the root context is guaranteed to exist by the time
+         either DispatcherServlet below asks for its parent.
+    -->
+    <listener>
+        <listener-class>
+            org.springframework.web.context.ContextLoaderListener
+        </listener-class>
+    </listener>
+<!--    <context-param>-->
+<!--        <param-name>contextConfigLocation</param-name>-->
+<!--        <param-value>/WEB-INF/spring/applicationContext.xml</param-value>-->
+<!--    </context-param>-->
+    
+
+
+    <!-- =================================================================
+         2. THE FIRST DispatcherServlet  ->  its own WebApplicationContext
+         =================================================================
+         Again: no contextConfigLocation init-param. FrameworkServlet builds
+         the default from the SERVLET NAME:
+
+             namespace      = "mvc-dispatcher" + "-servlet"
+             config location = /WEB-INF/mvc-dispatcher-servlet.xml
+
+         Rename this servlet and the file it looks for changes with it.
+         The class name has nothing to do with it.
+
+         load-on-startup 1  ->  built at deploy time, so configuration
+         mistakes blow up in the console instead of in front of a user.
+    -->
+    <servlet>
+        <servlet-name>mvc-dispatcher</servlet-name>
+        <servlet-class>
+            org.springframework.web.servlet.DispatcherServlet
+        </servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <!--
+        "/" replaces the container's DEFAULT servlet.
+        JSPs still render because "*.jsp" is a more specific mapping and wins.
+        Using "/*" here instead would break every view: the forward to the JSP
+        would come straight back to DispatcherServlet.
+    -->
+    <servlet-mapping>
+        <servlet-name>mvc-dispatcher</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+
+
+    <!-- =================================================================
+         3. A SECOND DispatcherServlet  ->  a SECOND WebApplicationContext
+         =================================================================
+         Config file: /WEB-INF/api-dispatcher-servlet.xml
+
+         This one exists to make one point concrete:
+           - it has its OWN web context, with its own handler mapping
+           - it shares the SAME root context as mvc-dispatcher
+           - so both see the same single GreetingService instance
+
+         "/api/*" is a PREFIX mapping, which changes the lookup path Spring
+         uses: for GET /mvcdemo/api/ping the handler mapping is asked about
+         "/ping", not "/api/ping". See api-dispatcher-servlet.xml.
+    -->
+
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+
+</web-app>
